@@ -1,0 +1,31 @@
+{% extends 'pokedex_app/base.html' %}
+
+{% block title %}Welcome - Pokedex{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Welcome to the Pokedex Challenge!</h1>
+    <p class="lead">This is a Django application to browse and discover Pokemon, powered by the PokeAPI.</p>
+    <hr class="my-4">
+    <p>Explore the world of Pokemon, view their details, stats, and more.</p>
+    <a class="btn btn-primary btn-lg" href="{% url 'pokemon_list' %}" role="button">View Pokemon List</a>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <h2>Project Goals</h2>
+        <p>This project aims to demonstrate Python/Django skills by integrating with the PokeAPI to create a functional Pokedex. Key features include:</p>
+        <ul>
+            <li>Listing Pokemon</li>
+            <li>Showing details for a selected Pokemon</li>
+            <li>Searching and filtering capabilities</li>
+            <li>Displaying evolution chains</li>
+        </ul>
+    </div>
+    <div class="col-md-6">
+        <h2>About PokeAPI</h2>
+        <p>The <a href="https://pokeapi.co/" target="_blank">PokeAPI</a> is a comprehensive, open RESTful API for all things Pokemon. It provides data on Pokemon, moves, abilities, types, and much more.</p>
+        <p>All data used in this application is fetched directly from the PokeAPI.</p>
+    </div>
+</div>
+{% endblock %} 

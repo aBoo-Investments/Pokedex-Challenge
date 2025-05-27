@@ -1,0 +1,102 @@
+{% extends 'pokedex_app/base.html' %}
+
+{% block title %}Pokemon List - Pokedex{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Pokemon List</h1>
+</div>
+
+<form method="GET" action="{% url 'pokemon_list' %}" class="mb-4">
+    <div class="form-row">
+        <div class="col-md-6 mb-2">
+            <div class="input-group">
+                <input type="text" name="q" class="form-control" placeholder="Search by name..." value="{{ request.GET.q }}" {% if selected_type_url %}disabled{% endif %}>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-primary" type="submit" {% if selected_type_url %}disabled{% endif %}>Search</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5 mb-2">
+            <select name="type_filter" class="form-control" onchange="this.form.submit()" {% if request.GET.q %}disabled{% endif %}>
+                <option value="">Filter by type...</option>
+                {% for type in all_types %}
+                    <option value="{{ type.url }}" {% if type.url == selected_type_url %}selected{% endif %}>{{ type.name|capfirst }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-1 mb-2">
+            <a href="{% url 'pokemon_list' %}" class="btn btn-outline-secondary btn-block">Reset</a>
+        </div>
+    </div>
+</form>
+
+{% if search_error %}
+    <div class="alert alert-danger" role="alert">
+        {{ search_error }}
+    </div>
+{% endif %}
+
+{% if pokemon_list %}
+    <div class="list-group">
+        {% for pokemon in pokemon_list %}
+            <a href="{% url 'pokemon_detail' pokemon_name=pokemon.name %}" class="list-group-item list-group-item-action d-flex align-items-center">
+                {% if pokemon.sprite %}
+                    <img src="{{ pokemon.sprite }}" alt="{{ pokemon.name|capfirst }}" class="mr-3" style="width: 50px; height: 50px; image-rendering: pixelated;">
+                {% else %}
+                    <div class="mr-3" style="width: 50px; height: 50px; background-color: #f0f0f0; text-align: center; line-height: 50px;">?</div>
+                {% endif %}
+                <div class="flex-grow-1">
+                    <h5 class="mb-1">{{ pokemon.name|capfirst }}</h5>
+                    <small>
+                        Types: 
+                        {% for type in pokemon.types %}
+                            <span class="badge badge-info mr-1">{{ type|capfirst }}</span>
+                        {% empty %}
+                            N/A
+                        {% endfor %}
+                        <br>
+                        Abilities: 
+                        {% for ability in pokemon.abilities %}
+                            <span class="badge badge-warning mr-1">{{ ability|capfirst }}</span>
+                        {% empty %}
+                            N/A
+                        {% endfor %}
+                    </small>
+                </div>
+                <span class="badge badge-primary badge-pill">Details</span>
+            </a>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-warning" role="alert">
+        No Pokemon found, or there was an error fetching them.
+    </div>
+{% endif %}
+
+{# Basic Pagination (can be improved) #}
+<nav aria-label="Pokemon navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if previous_url %}
+            <li class="page-item">
+                <a class="page-link" href="?page_url={{ previous_url|urlencode }}">Previous</a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Previous</span>
+            </li>
+        {% endif %}
+
+        {% if next_url %}
+            <li class="page-item">
+                <a class="page-link" href="?page_url={{ next_url|urlencode }}">Next</a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Next</span>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+
+{% endblock %} 

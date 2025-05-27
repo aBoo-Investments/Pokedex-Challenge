@@ -1,0 +1,76 @@
+{% extends 'pokedex_app/base.html' %}
+
+{% block title %}{{ pokemon_data.name|default:pokemon_name }} - Pokedex{% endblock %}
+
+{% block content %}
+    <a href="{% url 'index' %}">Home</a> | <a href="{% url 'pokemon_list' %}">Back to List</a>
+    <hr>
+
+    {% if error %}
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">Error!</h4>
+            <p>{{ error }}</p>
+        </div>
+    {% elif pokemon_data %}
+        <div class="row mb-4">
+            <div class="col-md-4 text-center">
+                {% if pokemon_data.sprite_front %}
+                    <img src="{{ pokemon_data.sprite_front }}" alt="Sprite of {{ pokemon_data.name }}" class="img-fluid pokemon-sprite mb-3">
+                {% else %}
+                    <div class="border p-3 mb-3 text-muted">No sprite available</div>
+                {% endif %}
+                <h1 class="mb-0">{{ pokemon_data.name }}</h1>
+                <p class="text-muted">#{{ pokemon_data.id }}</p>
+            </div>
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        Details
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Height:</strong> {{ pokemon_data.height }} dm</p>
+                                <p><strong>Weight:</strong> {{ pokemon_data.weight }} hg</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Types:</strong>
+                                    {% for type in pokemon_data.types %}
+                                        <span class="badge badge-info mr-1">{{ type|capfirst }}</span>
+                                    {% empty %}
+                                        N/A
+                                    {% endfor %}
+                                </p>
+                                <p><strong>Abilities:</strong>
+                                    {% for ability in pokemon_data.abilities %}
+                                        <span class="badge badge-secondary mr-1">{{ ability|capfirst }}</span>
+                                    {% empty %}
+                                        N/A
+                                    {% endfor %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>Base Stats</h2>
+        {% for stat_name, stat_value in pokemon_data.stats.items %}
+            <div class="mb-2">
+                <strong>{{ stat_name|capfirst }}:</strong> {{ stat_value }}
+                <div class="stat-bar-container">
+                    <div class="stat-bar" style="width: {{ stat_value }}%; max-width: 100%;" role="progressbar" aria-valuenow="{{ stat_value }}" aria-valuemin="0" aria-valuemax="255">{{ stat_value }}</div>
+                </div>
+            </div>
+        {% empty %}
+            <p>No stats listed.</p>
+        {% endfor %}
+
+    {% else %}
+        <div class="alert alert-warning" role="alert">
+            <h4 class="alert-heading">Pokemon Not Found</h4>
+            <p>The Pokemon "{{ pokemon_name }}" could not be found or data is unavailable.</p>
+        </div>
+    {% endif %}
+{% endblock %} 

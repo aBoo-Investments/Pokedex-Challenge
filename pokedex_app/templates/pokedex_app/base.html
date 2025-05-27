@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Pokedex Challenge{% endblock %}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding-top: 56px; } /* Adjust if using a fixed navbar */
+        .pokemon-sprite { max-width: 150px; image-rendering: pixelated; }
+        .stat-bar-container {
+            background-color: #e9ecef;
+            border-radius: .25rem;
+            height: 20px;
+            margin-bottom: 5px;
+        }
+        .stat-bar {
+            background-color: #007bff;
+            height: 100%;
+            border-radius: .25rem;
+            transition: width 0.6s ease-in-out;
+            text-align: right;
+            padding-right: 5px;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'index' %}">Pokedex</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item {% if request.resolver_match.url_name == 'index' %}active{% endif %}">
+                        <a class="nav-link" href="{% url 'index' %}">Home
+                            {% if request.resolver_match.url_name == 'index' %}<span class="sr-only">(current)</span>{% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item {% if request.resolver_match.url_name == 'pokemon_list' %}active{% endif %}">
+                        <a class="nav-link" href="{% url 'pokemon_list' %}">Pokemon List</a>
+                    </li>
+                    </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <footer class="py-5 bg-dark mt-auto">
+        <div class="container">
+            <p class="m-0 text-center text-white">Copyright &copy; Dušan Šula, MBA - 2025</p>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html> 
