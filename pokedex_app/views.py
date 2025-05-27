@@ -3,6 +3,7 @@ from django.urls import reverse
 import requests
 from .models import Pokemon, Type, Ability # Import new models
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger # For DB pagination
+from django.db.models import Q # For complex lookups
 # from django.db import models # This was an erroneously added import by the model
 
 # Create your views here.
@@ -325,3 +326,81 @@ def pokemon_detail(request, pokemon_name):
             'error': f"Could not find or fetch data for {pokemon_name.capitalize()}."
         }
     return render(request, 'pokedex_app/pokemon_detail.html', context)
+
+def pokemon_compare(request):
+    pokemon1_name = request.GET.get('pokemon1')
+    pokemon2_name = request.GET.get('pokemon2')
+    pokemon1_data = None
+    pokemon2_data = None
+    comparison_results = None
+    error_message = None
+
+    # Get all Pokemon names for dropdowns
+    all_pokemon_for_select = Pokemon.objects.all().order_by('name')
+    if not all_pokemon_for_select and Pokemon.objects.count() < 151: # Try to fetch more if DB is sparse
+        print("[ComparePage] DB has too few Pokemon for selection, attempting to seed initial 151 from API.")
+        try:
+            initial_response = requests.get('https://pokeapi.co/api/v2/pokemon?limit=151') # Gen 1 for starters
+            if initial_response.status_code == 200:
+                for p_info in initial_response.json().get('results', []):
+                    get_or_fetch_pokemon_details(p_info['name']) # This will save them to DB
+                all_pokemon_for_select = Pokemon.objects.all().order_by('name') # Re-query
+            else:
+                 print("[ComparePage SEED ERROR] Failed to seed initial Pokemon data from API.")
+        except requests.RequestException:
+            print("[ComparePage SEED ERROR] API error during initial Pokemon data seed.")
+
+    if pokemon1_name and pokemon2_name:
+        if pokemon1_name == pokemon2_name:
+            error_message = "Please select two different Pokémon to compare."
+        else:
+            pokemon1_obj = get_or_fetch_pokemon_details(pokemon1_name)
+            pokemon2_obj = get_or_fetch_pokemon_details(pokemon2_name)
+
+            if pokemon1_obj and pokemon2_obj:
+                pokemon1_data = {
+                    'name': pokemon1_obj.name.capitalize(),
+                    'sprite_url': pokemon1_obj.sprite_url,
+                    'types': [t.name.capitalize() for t in pokemon1_obj.types.all()],
+                    'stats': pokemon1_obj.stats or {},
+                    'detail_url': reverse('pokemon_detail', kwargs={'pokemon_name': pokemon1_obj.name})
+                }
+                pokemon2_data = {
+                    'name': pokemon2_obj.name.capitalize(),
+                    'sprite_url': pokemon2_obj.sprite_url,
+                    'types': [t.name.capitalize() for t in pokemon2_obj.types.all()],
+                    'stats': pokemon2_obj.stats or {},
+                    'detail_url': reverse('pokemon_detail', kwargs={'pokemon_name': pokemon2_obj.name})
+                }
+
+                # Basic stat comparison logic
+                comparison_results = {}
+                all_stat_names = sorted(list(set((pokemon1_data['stats'].keys() | pokemon2_data['stats'].keys()))))
+                
+                for stat_name in all_stat_names:
+                    val1 = pokemon1_data['stats'].get(stat_name, 0)
+                    val2 = pokemon2_data['stats'].get(stat_name, 0)
+                    winner = 'pokemon1' if val1 > val2 else ('pokemon2' if val2 > val1 else 'tie')
+                    comparison_results[stat_name.capitalize()] = {
+                        'pokemon1_value': val1,
+                        'pokemon2_value': val2,
+                        'winner': winner
+                    }
+            else:
+                error_message = "Could not retrieve data for one or both selected Pokémon."
+                if not pokemon1_obj:
+                    error_message += f" Problem with {pokemon1_name}."
+                if not pokemon2_obj:
+                    error_message += f" Problem with {pokemon2_name}."
+    
+    context = {
+        'all_pokemon': all_pokemon_for_select,
+        'pokemon1_name': pokemon1_name,
+        'pokemon2_name': pokemon2_name,
+        'pokemon1_data': pokemon1_data,
+        'pokemon2_data': pokemon2_data,
+        'comparison_results': comparison_results,
+        'error_message': error_message,
+        'title': "Compare Pokémon"
+    }
+    return render(request, 'pokedex_app/pokemon_compare.html', context)

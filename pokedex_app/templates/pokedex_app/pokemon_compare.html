@@ -1,0 +1,130 @@
+{% extends 'pokedex_app/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - Pokedex{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4 text-center">{{ title }}</h1>
+
+    <form method="GET" action="{% url 'pokemon_compare' %}" class="mb-5">
+        <div class="row">
+            <div class="col-md-5">
+                <div class="form-group">
+                    <label for="pokemon1">Select Pokémon 1:</label>
+                    <select name="pokemon1" id="pokemon1" class="form-control">
+                        <option value="">--- Select Pokémon ---</option>
+                        {% for p in all_pokemon %}
+                            <option value="{{ p.name }}" {% if p.name == pokemon1_name %}selected{% endif %}>{{ p.name|capfirst }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="form-group">
+                    <label for="pokemon2">Select Pokémon 2:</label>
+                    <select name="pokemon2" id="pokemon2" class="form-control">
+                        <option value="">--- Select Pokémon ---</option>
+                        {% for p in all_pokemon %}
+                            <option value="{{ p.name }}" {% if p.name == pokemon2_name %}selected{% endif %}>{{ p.name|capfirst }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary btn-block">Compare</button>
+            </div>
+        </div>
+    </form>
+
+    {% if error_message %}
+        <div class="alert alert-danger">{{ error_message }}</div>
+    {% endif %}
+
+    {% if pokemon1_data and pokemon2_data and comparison_results %}
+        <div class="row">
+            <!-- Pokémon 1 Column -->
+            <div class="col-md-6">
+                <div class="card pokemon-card text-center" id="pokemon1-card">
+                    {% if pokemon1_data.sprite_url %}
+                        <img src="{{ pokemon1_data.sprite_url }}" class="card-img-top pokemon-sprite mx-auto mt-3" alt="{{ pokemon1_data.name }}">
+                    {% else %}
+                        <img src="{% static 'pokedex_app/images/pokemon_placeholder.png' %}" class="card-img-top pokemon-sprite mx-auto mt-3" alt="Placeholder">
+                    {% endif %}
+                    <div class="card-body">
+                        <h3 class="card-title"><a href="{{ pokemon1_data.detail_url }}">{{ pokemon1_data.name }}</a></h3>
+                        <p class="card-text">
+                            Types: 
+                            {% for type in pokemon1_data.types %}
+                                <span class="badge badge-info type-{{ type|lower }}">{{ type }}</span>
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pokémon 2 Column -->
+            <div class="col-md-6">
+                <div class="card pokemon-card text-center" id="pokemon2-card">
+                     {% if pokemon2_data.sprite_url %}
+                        <img src="{{ pokemon2_data.sprite_url }}" class="card-img-top pokemon-sprite mx-auto mt-3" alt="{{ pokemon2_data.name }}">
+                    {% else %}
+                        <img src="{% static 'pokedex_app/images/pokemon_placeholder.png' %}" class="card-img-top pokemon-sprite mx-auto mt-3" alt="Placeholder">
+                    {% endif %}
+                    <div class="card-body">
+                        <h3 class="card-title"><a href="{{ pokemon2_data.detail_url }}">{{ pokemon2_data.name }}</a></h3>
+                        <p class="card-text">
+                            Types: 
+                            {% for type in pokemon2_data.types %}
+                                <span class="badge badge-info type-{{ type|lower }}">{{ type }}</span>
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="text-center my-4">Stat Comparison</h2>
+        <table class="table table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Stat</th>
+                    <th scope="col" class="text-center">{{ pokemon1_data.name }}</th>
+                    <th scope="col" class="text-center">{{ pokemon2_data.name }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat_name, values in comparison_results.items %}
+                    <tr>
+                        <th scope="row">{{ stat_name }}</th>
+                        <td class="text-center {% if values.winner == 'pokemon1' %}table-success font-weight-bold{% elif values.winner == 'tie' %}table-warning{% endif %}">
+                            {{ values.pokemon1_value }}
+                        </td>
+                        <td class="text-center {% if values.winner == 'pokemon2' %}table-success font-weight-bold{% elif values.winner == 'tie' %}table-warning{% endif %}">
+                            {{ values.pokemon2_value }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% elif pokemon1_name and pokemon2_name and not error_message %}
+        <div class="alert alert-info">Select Pokémon and click "Compare" to see their stats.</div>
+    {% endif %}
+
+</div>
+
+<style>
+    .pokemon-sprite {
+        max-width: 120px; /* Smaller sprites for comparison page */
+        height: auto;
+        image-rendering: pixelated;
+    }
+    .pokemon-card {
+        transition: transform 0.2s ease-in-out;
+    }
+    .pokemon-card:hover {
+        transform: scale(1.03);
+    }
+</style>
+
+{% endblock %} 
