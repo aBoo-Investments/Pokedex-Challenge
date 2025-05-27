@@ -8,20 +8,22 @@
 </div>
 
 <form method="GET" action="{% url 'pokemon_list' %}" class="mb-4">
-    <div class="form-row">
+    <div class="form-row align-items-end">
         <div class="col-md-6 mb-2">
+            <label for="pokemonNameSearch" class="sr-only">Search by name</label>
             <div class="input-group">
-                <input type="text" name="q" class="form-control" placeholder="Search by name..." value="{{ request.GET.q }}" {% if selected_type_url %}disabled{% endif %}>
+                <input type="text" name="q" id="pokemonNameSearch" class="form-control" placeholder="Search by name..." value="{{ query|default:'' }}" {% if selected_type_name %}disabled{% endif %}>
                 <div class="input-group-append">
-                    <button class="btn btn-outline-primary" type="submit" {% if selected_type_url %}disabled{% endif %}>Search</button>
+                    <button class="btn btn-outline-primary" type="submit" {% if selected_type_name %}disabled{% endif %}>Search</button>
                 </div>
             </div>
         </div>
         <div class="col-md-5 mb-2">
-            <select name="type_filter" class="form-control" onchange="this.form.submit()" {% if request.GET.q %}disabled{% endif %}>
+            <label for="typeFilterSelect" class="sr-only">Filter by type</label>
+            <select name="type_filter_name" id="typeFilterSelect" class="form-control" onchange="this.form.submit()" {% if query %}disabled{% endif %}>
                 <option value="">Filter by type...</option>
-                {% for type in all_types %}
-                    <option value="{{ type.url }}" {% if type.url == selected_type_url %}selected{% endif %}>{{ type.name|capfirst }}</option>
+                {% for type_obj in all_types_for_filter %}
+                    <option value="{{ type_obj.name }}" {% if type_obj.name == selected_type_name %}selected{% endif %}>{{ type_obj.name|capfirst }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -37,28 +39,28 @@
     </div>
 {% endif %}
 
-{% if pokemon_list %}
+{% if pokemon_list_from_db.object_list %}
     <div class="list-group">
-        {% for pokemon in pokemon_list %}
+        {% for pokemon in pokemon_list_from_db %}
             <a href="{% url 'pokemon_detail' pokemon_name=pokemon.name %}" class="list-group-item list-group-item-action d-flex align-items-center">
-                {% if pokemon.sprite %}
-                    <img src="{{ pokemon.sprite }}" alt="{{ pokemon.name|capfirst }}" class="mr-3" style="width: 50px; height: 50px; image-rendering: pixelated;">
+                {% if pokemon.sprite_url %}
+                    <img src="{{ pokemon.sprite_url }}" alt="{{ pokemon.name|capfirst }}" class="mr-3" style="width: 50px; height: 50px; image-rendering: pixelated;">
                 {% else %}
-                    <div class="mr-3" style="width: 50px; height: 50px; background-color: #f0f0f0; text-align: center; line-height: 50px;">?</div>
+                    <div class="mr-3 rounded" style="width: 50px; height: 50px; background-color: #f0f0f0; text-align: center; line-height: 50px; font-weight: bold;">?</div>
                 {% endif %}
                 <div class="flex-grow-1">
                     <h5 class="mb-1">{{ pokemon.name|capfirst }}</h5>
                     <small>
                         Types: 
-                        {% for type in pokemon.types %}
-                            <span class="badge badge-info mr-1">{{ type|capfirst }}</span>
+                        {% for type_instance in pokemon.types.all %}
+                            <span class="badge badge-info mr-1">{{ type_instance.name|capfirst }}</span>
                         {% empty %}
                             N/A
                         {% endfor %}
                         <br>
                         Abilities: 
-                        {% for ability in pokemon.abilities %}
-                            <span class="badge badge-warning mr-1">{{ ability|capfirst }}</span>
+                        {% for ability_instance in pokemon.abilities.all %}
+                            <span class="badge badge-warning mr-1">{{ ability_instance.name|capfirst }}</span>
                         {% empty %}
                             N/A
                         {% endfor %}
@@ -69,34 +71,59 @@
         {% endfor %}
     </div>
 {% else %}
-    <div class="alert alert-warning" role="alert">
-        No Pokemon found, or there was an error fetching them.
+    <div class="alert alert-info mt-3" role="alert">
+        {% if query or selected_type_name %}
+            No Pokémon match your criteria in the local database.
+        {% else %}
+            The Pokedex is currently empty. Try refreshing, or data will be fetched as you navigate.
+        {% endif %}
     </div>
 {% endif %}
 
-{# Basic Pagination (can be improved) #}
-<nav aria-label="Pokemon navigation" class="mt-4">
-    <ul class="pagination justify-content-center">
-        {% if previous_url %}
-            <li class="page-item">
-                <a class="page-link" href="?page_url={{ previous_url|urlencode }}">Previous</a>
-            </li>
-        {% else %}
-            <li class="page-item disabled">
-                <span class="page-link">Previous</span>
-            </li>
-        {% endif %}
+{# Django Paginator Controls #}
+{% if pokemon_list_from_db.has_other_pages %}
+    <nav aria-label="Pokemon navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if pokemon_list_from_db.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ pokemon_list_from_db.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_type_name %}&type_filter_name={{ selected_type_name }}{% endif %}">Previous</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Previous</span>
+                </li>
+            {% endif %}
 
-        {% if next_url %}
-            <li class="page-item">
-                <a class="page-link" href="?page_url={{ next_url|urlencode }}">Next</a>
-            </li>
-        {% else %}
-            <li class="page-item disabled">
-                <span class="page-link">Next</span>
-            </li>
-        {% endif %}
-    </ul>
-</nav>
+            {% for i in pokemon_list_from_db.paginator.page_range %}
+                {% if pokemon_list_from_db.number == i %}
+                    <li class="page-item active" aria-current="page">
+                        <span class="page-link">{{ i }} <span class="sr-only">(current)</span></span>
+                    </li>
+                {% elif i > pokemon_list_from_db.number|add:'-3' and i < pokemon_list_from_db.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}{% if selected_type_name %}&type_filter_name={{ selected_type_name }}{% endif %}">{{ i }}</a></li>
+                {% elif i == 1 or i == pokemon_list_from_db.paginator.num_pages %}
+                    {# Always show first and last page, with ellipsis if needed #}
+                    {% if i == 1 and pokemon_list_from_db.number > 4 %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                     <li class="page-item"><a class="page-link" href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}{% if selected_type_name %}&type_filter_name={{ selected_type_name }}{% endif %}">{{ i }}</a></li>
+                    {% if i == pokemon_list_from_db.paginator.num_pages and pokemon_list_from_db.number < pokemon_list_from_db.paginator.num_pages|add:'-3' %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+
+            {% if pokemon_list_from_db.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ pokemon_list_from_db.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_type_name %}&type_filter_name={{ selected_type_name }}{% endif %}">Next</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Next</span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}
 
 {% endblock %} 
