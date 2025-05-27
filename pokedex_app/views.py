@@ -5,6 +5,7 @@ from .models import Pokemon, Type, Ability # Import new models
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger # For DB pagination
 from django.db.models import Q # For complex lookups
 # from django.db import models # This was an erroneously added import by the model
+import random
 
 # Create your views here.
 
@@ -208,7 +209,43 @@ def pokemon_list(request):
     return render(request, 'pokedex_app/pokemon_list.html', context)
 
 def index(request):
-    return render(request, 'pokedex_app/index.html')
+    random_pokemon_for_carousel = []
+    all_pokemon_in_db = list(Pokemon.objects.filter(sprite_url__isnull=False)) # Only those with sprites
+    
+    if len(all_pokemon_in_db) > 0:
+        # Try to get 5 unique random Pokemon, or fewer if not enough are available
+        num_to_select = min(len(all_pokemon_in_db), 5)
+        random_pokemon_for_carousel = random.sample(all_pokemon_in_db, num_to_select)
+    else:
+        # If DB is very empty, try to seed a few for the carousel to work on first load
+        print("[IndexPage] DB has no Pokemon with sprites for carousel, attempting to seed a few.")
+        try:
+            # Let's fetch a few well-known ones that usually have sprites
+            starter_names = ['bulbasaur', 'charmander', 'squirtle', 'pikachu', 'eevee']
+            for name in starter_names:
+                p = get_or_fetch_pokemon_details(name)
+                if p and p.sprite_url:
+                    random_pokemon_for_carousel.append(p)
+                if len(random_pokemon_for_carousel) >= 3: # Get at least 3 for a decent carousel
+                    break
+            # If still not enough, try fetching first 5 from API list
+            if len(random_pokemon_for_carousel) < 3:
+                response = requests.get('https://pokeapi.co/api/v2/pokemon?limit=5')
+                if response.status_code == 200:
+                    for p_info in response.json().get('results', []):
+                        p = get_or_fetch_pokemon_details(p_info['name'])
+                        if p and p.sprite_url and p not in random_pokemon_for_carousel:
+                            random_pokemon_for_carousel.append(p)
+                        if len(random_pokemon_for_carousel) >= 5:
+                            break
+        except requests.RequestException as e:
+            print(f"[IndexPage SEED ERROR] API error during Pokemon seed for carousel: {e}")
+
+    context = {
+        'random_pokemon_carousel': random_pokemon_for_carousel,
+        'title': "Welcome to the Pokedex!"
+    }
+    return render(request, 'pokedex_app/index.html', context)
 
 # Helper function to recursively parse evolution stages
 def _parse_evolution_stage(stage_data):

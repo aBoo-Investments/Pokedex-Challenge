@@ -1,31 +1,109 @@
 {% extends 'pokedex_app/base.html' %}
+{% load static %}
 
-{% block title %}Welcome - Pokedex{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="jumbotron">
-    <h1 class="display-4">Welcome to the Pokedex Challenge!</h1>
-    <p class="lead">This is a Django application to browse and discover Pokemon, powered by the PokeAPI.</p>
-    <hr class="my-4">
-    <p>Explore the world of Pokemon, view their details, stats, and more.</p>
-    <a class="btn btn-primary btn-lg" href="{% url 'pokemon_list' %}" role="button">View Pokemon List</a>
+<div class="container mt-5">
+    <div class="jumbotron text-center bg-light shadow-sm">
+        <h1 class="display-4">{{ title }}</h1>
+        <p class="lead">Your ultimate guide to the world of Pokémon!</p>
+        <hr class="my-4">
+        <p>Explore, discover, and learn about your favorite Pokémon. See their stats, abilities, types, and evolution chains.</p>
+        <a class="btn btn-primary btn-lg" href="{% url 'pokemon_list' %}" role="button">Browse Pokémon</a>
+    </div>
+
+    {% if random_pokemon_carousel %}
+    <div id="pokemonCarousel" class="carousel slide my-5 shadow border rounded" data-ride="carousel" data-interval="3000">
+        <ol class="carousel-indicators">
+            {% for p in random_pokemon_carousel %}
+            <li data-target="#pokemonCarousel" data-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}"></li>
+            {% endfor %}
+        </ol>
+        <div class="carousel-inner bg-white rounded">
+            {% for p in random_pokemon_carousel %}
+            <div class="carousel-item {% if forloop.first %}active{% endif %} py-4">
+                <a href="{% url 'pokemon_detail' p.name %}" class="text-decoration-none">
+                    <img src="{{ p.sprite_url }}" class="d-block mx-auto pokemon-sprite-carousel" alt="{{ p.name|capfirst }}">
+                    <div class="carousel-caption d-none d-md-block text-dark">
+                        <h5 style="background-color: rgba(255,255,255,0.7); padding: 5px; border-radius: 5px;">{{ p.name|capfirst }}</h5>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        <a class="carousel-control-prev" href="#pokemonCarousel" role="button" data-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true" style="background-color: rgba(0,0,0,0.5); border-radius: 50%;"></span>
+            <span class="sr-only">Previous</span>
+        </a>
+        <a class="carousel-control-next" href="#pokemonCarousel" role="button" data-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true" style="background-color: rgba(0,0,0,0.5); border-radius: 50%;"></span>
+            <span class="sr-only">Next</span>
+        </a>
+    </div>
+    {% else %}
+        <div class="alert alert-info my-5">No Pokémon available for the showcase right now. Try browsing the list!</div>
+    {% endif %}
+
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <h2 class="text-center mb-4">Application Features</h2>
+        </div>
+    </div>
+    <div class="row text-center">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-list fa-3x text-primary mb-3"></i>
+                    <h4 class="card-title">Pokémon List</h4>
+                    <p class="card-text">Browse a paginated list of Pokémon. Seed the database from PokeAPI on first load.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-search fa-3x text-info mb-3"></i>
+                    <h4 class="card-title">Search & Filter</h4>
+                    <p class="card-text">Search Pokémon by name, or filter them by type or ability.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-info-circle fa-3x text-success mb-3"></i>
+                    <h4 class="card-title">Detailed View</h4>
+                    <p class="card-text">View detailed information including sprites, height, weight, types, abilities, stats, and evolution chains.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-balance-scale fa-3x text-warning mb-3"></i>
+                    <h4 class="card-title">Compare Pokémon</h4>
+                    <p class="card-text">Select any two Pokémon and compare their base stats side-by-side.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <h2>Project Goals</h2>
-        <p>This project aims to demonstrate Python/Django skills by integrating with the PokeAPI to create a functional Pokedex. Key features include:</p>
-        <ul>
-            <li>Listing Pokemon</li>
-            <li>Showing details for a selected Pokemon</li>
-            <li>Searching and filtering capabilities</li>
-            <li>Displaying evolution chains</li>
-        </ul>
-    </div>
-    <div class="col-md-6">
-        <h2>About PokeAPI</h2>
-        <p>The <a href="https://pokeapi.co/" target="_blank">PokeAPI</a> is a comprehensive, open RESTful API for all things Pokemon. It provides data on Pokemon, moves, abilities, types, and much more.</p>
-        <p>All data used in this application is fetched directly from the PokeAPI.</p>
-    </div>
-</div>
+<style>
+    .pokemon-sprite-carousel {
+        max-height: 150px; /* Adjust as needed */
+        width: auto;
+        image-rendering: pixelated;
+    }
+    .jumbotron {
+        background-image: url('https://www.transparenttextures.com/patterns/γήινες-γραμμές.png'); /* Subtle background texture */
+        background-size: cover;
+    }
+    .carousel-control-prev-icon, .carousel-control-next-icon {
+        filter: invert(1) grayscale(100) brightness(200%); /* Make arrows white if default is dark */
+    }
+</style>
+
 {% endblock %} 
