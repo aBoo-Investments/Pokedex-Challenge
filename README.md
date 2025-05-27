@@ -205,15 +205,20 @@ While the current Pokedex is functional and feature-rich, here are some ideas fo
     *   Display more detailed information like move sets, locations where Pokémon can be found, or flavor text entries from different game versions.
     *   Fetch and display shiny sprites.
 *   **Full API Fetch for Ability Filter**: Currently, the ability filter in the list view only filters Pokémon already in the local database. Implement a full API fetch for the selected ability (similar to the type filter) to ensure all Pokémon with that ability are shown and cached.
+*   **Asynchronous Background Tasks for API Interaction & Data Sync**: 
+    *   Implement a task queue system (e.g., Celery with Redis or RabbitMQ as a broker) to handle API calls and data synchronization asynchronously, preventing blocking of user requests.
+    *   Utilize Celery Beat to schedule periodic tasks for fetching updates from PokeAPI (e.g., daily updates for Pokémon data, checking for new Pokémon) to keep the local database current without manual intervention or direct user-triggered load.
+    *   Leverage Django custom management commands, potentially triggered by Celery tasks, for bulk data operations such as initial database seeding or large-scale data migrations/updates from the API.
+    *   This architecture would significantly improve application responsiveness, especially for operations requiring external API calls, make the system more resilient to API downtimes or rate limits, and ensure data freshness.
 *   **Improved UI/UX**: 
     *   More dynamic interactions with JavaScript (e.g., live search results without page reload).
     *   Custom styling beyond Bootstrap defaults for a more unique look and feel.
-    *   Better loading indicators for API calls.
-*   **Admin Interface Enhancements**: Customize the Django admin to better manage Pokémon data, types, and abilities.
-*   **Testing**: Write more comprehensive unit and integration tests, covering more edge cases and UI interactions (e.g., with Selenium).
-*   **Deployment**: Document steps for deploying the application to a platform like Heroku, PythonAnywhere, or AWS.
+    *   Better loading indicators for API calls, especially if deferring to background tasks.
+*   **Admin Interface Enhancements**: Customize the Django admin to better manage Pokémon data, types, and abilities, and potentially to monitor background tasks.
+*   **Testing**: Write more comprehensive unit and integration tests, covering more edge cases and UI interactions (e.g., with Selenium), and tests for the asynchronous tasks.
+*   **Deployment**: Document steps for deploying the application to a platform like Heroku, PythonAnywhere, or AWS, including considerations for Celery workers and broker services.
 *   **Team Builder**: A feature where users can build a team of Pokémon and see combined type weaknesses/resistances.
-*   **Docker Compose for Multi-Container Setups**: For more complex deployments (e.g., with a separate database container like PostgreSQL, or a web server like Nginx), implement `docker-compose.yml`.
+*   **Docker Compose for Multi-Container Setups**: For more complex deployments (e.g., with a separate database container like PostgreSQL, a web server like Nginx, Celery workers, and a Redis broker), implement `docker-compose.yml`.
 *   **Production-Ready Dockerfile**: Optimize the `Dockerfile` for production (e.g., using a non-root user, multi-stage builds, Gunicorn as the application server instead of Django's development server).
 
 ---
