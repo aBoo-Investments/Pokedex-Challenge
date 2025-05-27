@@ -9,21 +9,30 @@
 
 <form method="GET" action="{% url 'pokemon_list' %}" class="mb-4">
     <div class="form-row align-items-end">
-        <div class="col-md-6 mb-2">
+        <div class="col-md-5 mb-2">
             <label for="pokemonNameSearch" class="sr-only">Search by name</label>
             <div class="input-group">
-                <input type="text" name="q" id="pokemonNameSearch" class="form-control" placeholder="Search by name..." value="{{ query|default:'' }}" {% if selected_type_name %}disabled{% endif %}>
+                <input type="text" name="q" id="pokemonNameSearch" class="form-control" placeholder="Search by name..." value="{{ query|default:'' }}" {% if selected_type_name or selected_ability_name %}disabled{% endif %}>
                 <div class="input-group-append">
-                    <button class="btn btn-outline-primary" type="submit" {% if selected_type_name %}disabled{% endif %}>Search</button>
+                    <button class="btn btn-outline-primary" type="submit" {% if selected_type_name or selected_ability_name %}disabled{% endif %}>Search</button>
                 </div>
             </div>
         </div>
-        <div class="col-md-5 mb-2">
+        <div class="col-md-3 mb-2">
             <label for="typeFilterSelect" class="sr-only">Filter by type</label>
-            <select name="type_filter_name" id="typeFilterSelect" class="form-control" onchange="this.form.submit()" {% if query %}disabled{% endif %}>
+            <select name="type_filter_name" id="typeFilterSelect" class="form-control" onchange="this.form.submit()" {% if query or selected_ability_name %}disabled{% endif %}>
                 <option value="">Filter by type...</option>
                 {% for type_obj in all_types_for_filter %}
                     <option value="{{ type_obj.name }}" {% if type_obj.name == selected_type_name %}selected{% endif %}>{{ type_obj.name|capfirst }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <label for="abilityFilterSelect" class="sr-only">Filter by ability</label>
+            <select name="ability_filter_name" id="abilityFilterSelect" class="form-control" onchange="this.form.submit()" {% if query or selected_type_name %}disabled{% endif %}>
+                <option value="">Filter by ability...</option>
+                {% for ability_obj in all_abilities_for_filter %}
+                    <option value="{{ ability_obj.name }}" {% if ability_obj.name == selected_ability_name %}selected{% endif %}>{{ ability_obj.name|capfirst }}</option>
                 {% endfor %}
             </select>
         </div>

@@ -22,6 +22,7 @@ class Pokemon(models.Model):
     sprite_url = models.URLField(max_length=255, null=True, blank=True)
     types = models.ManyToManyField(Type, related_name='pokemons')
     abilities = models.ManyToManyField(Ability, related_name='pokemons')
+    stats = models.JSONField(null=True, blank=True)
 
     def __str__(self):
         return self.name.capitalize()
