@@ -209,9 +209,93 @@ def pokemon_list(request):
 def index(request):
     return render(request, 'pokedex_app/index.html')
 
+# Helper function to recursively parse evolution stages
+def _parse_evolution_stage(stage_data):
+    species_name = stage_data['species']['name']
+    # Ensure Pokemon is in our DB and we have its details (sprite, etc.)
+    pokemon_obj = get_or_fetch_pokemon_details(species_name) 
+
+    if not pokemon_obj:
+        print(f"Warning: Could not get/fetch Pokemon details for {species_name} in evolution chain.")
+        return None 
+
+    current_evolution_node = {
+        'pokemon': pokemon_obj, 
+        'name': pokemon_obj.name.capitalize(),
+        'sprite_url': pokemon_obj.sprite_url,
+        'detail_url': reverse('pokemon_detail', kwargs={'pokemon_name': pokemon_obj.name}),
+        'evolves_to': []
+    }
+    
+    for next_stage_data in stage_data.get('evolves_to', []):
+        next_node = _parse_evolution_stage(next_stage_data) 
+        if next_node: 
+            current_evolution_node['evolves_to'].append(next_node)
+    
+    return current_evolution_node
+
+# Main function to fetch and process evolution chain
+def get_pokemon_evolution_chain(pokemon_name_or_id):
+    """
+    Fetches and processes the evolution chain for a given Pokemon.
+    Returns a structured dictionary representing the evolution tree.
+    """
+    # Step 1: Get the initial Pokemon's data to find its species URL
+    # We use its name for consistency in API calls, fetched via our helper
+    # to ensure it's a valid/known Pokemon name.
+    initial_pokemon_for_name = get_or_fetch_pokemon_details(pokemon_name_or_id)
+    if not initial_pokemon_for_name:
+        print(f"EvolutionChain: Initial Pokemon {pokemon_name_or_id} not found by helper.")
+        return None
+    
+    pokemon_api_url = f'https://pokeapi.co/api/v2/pokemon/{initial_pokemon_for_name.name.lower()}/'
+    try:
+        pokemon_response = requests.get(pokemon_api_url)
+        pokemon_response.raise_for_status()
+        pokemon_api_data = pokemon_response.json()
+    except requests.RequestException as e:
+        print(f"EvolutionChain: Error fetching Pokemon data from {pokemon_api_url}: {e}")
+        return None
+
+    species_url = pokemon_api_data.get('species', {}).get('url')
+    if not species_url:
+        print(f"EvolutionChain: Species URL not found for {initial_pokemon_for_name.name}.")
+        return None
+
+    # Step 2: Get species data to find the evolution chain URL
+    try:
+        species_response = requests.get(species_url)
+        species_response.raise_for_status()
+        species_data = species_response.json()
+    except requests.RequestException as e:
+        print(f"EvolutionChain: Error fetching species data from {species_url}: {e}")
+        return None
+
+    evolution_chain_url = species_data.get('evolution_chain', {}).get('url')
+    if not evolution_chain_url:
+        print(f"EvolutionChain: Evolution chain URL not found in species data for {initial_pokemon_for_name.name}.")
+        return None
+
+    # Step 3: Get evolution chain data
+    try:
+        chain_response = requests.get(evolution_chain_url)
+        chain_response.raise_for_status()
+        evolution_chain_data = chain_response.json()
+    except requests.RequestException as e:
+        print(f"EvolutionChain: Error fetching evolution chain data from {evolution_chain_url}: {e}")
+        return None
+    
+    if not evolution_chain_data or 'chain' not in evolution_chain_data:
+        print("EvolutionChain: Evolution chain data is malformed or 'chain' key is missing.")
+        return None
+
+    # Step 4: Parse the chain data starting from the root
+    return _parse_evolution_stage(evolution_chain_data['chain'])
+
 def pokemon_detail(request, pokemon_name):
     pokemon_name_lower = pokemon_name.lower()
     pokemon_obj = get_or_fetch_pokemon_details(pokemon_name_lower)
+    evolution_chain_data = None
 
     if pokemon_obj:
         pokemon_data_dict = {
@@ -219,20 +303,25 @@ def pokemon_detail(request, pokemon_name):
             'name': pokemon_obj.name.capitalize(),
             'height': pokemon_obj.height,
             'weight': pokemon_obj.weight,
-            'abilities': [ability.name for ability in pokemon_obj.abilities.all()],
-            'types': [ptype.name for ptype in pokemon_obj.types.all()],
+            'abilities': [ability.name.capitalize() for ability in pokemon_obj.abilities.all()],
+            'types': [ptype.name.capitalize() for ptype in pokemon_obj.types.all()],
             'sprite_front': pokemon_obj.sprite_url,
             'stats': pokemon_obj.stats if pokemon_obj.stats else {} 
         }
+        # Fetch evolution chain
+        evolution_chain_data = get_pokemon_evolution_chain(pokemon_obj.name) # Pass name
+
         context = {
             'pokemon_name': pokemon_obj.name.capitalize(),
             'pokemon_data': pokemon_data_dict,
+            'evolution_chain': evolution_chain_data,
             'error': None
         }
     else:
         context = {
             'pokemon_name': pokemon_name.capitalize(),
             'pokemon_data': None,
+            'evolution_chain': None,
             'error': f"Could not find or fetch data for {pokemon_name.capitalize()}."
         }
     return render(request, 'pokedex_app/pokemon_detail.html', context)

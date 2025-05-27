@@ -1,76 +1,102 @@
 {% extends 'pokedex_app/base.html' %}
+{% load static %}
 
-{% block title %}{{ pokemon_data.name|default:pokemon_name }} - Pokedex{% endblock %}
+{% block title %}{{ pokemon_name }} - Pokedex{% endblock %}
 
 {% block content %}
-    <a href="{% url 'index' %}">Home</a> | <a href="{% url 'pokemon_list' %}">Back to List</a>
-    <hr>
-
+<div class="container mt-4">
     {% if error %}
-        <div class="alert alert-danger" role="alert">
-            <h4 class="alert-heading">Error!</h4>
-            <p>{{ error }}</p>
-        </div>
+        <div class="alert alert-danger">{{ error }}</div>
+        <a href="{% url 'pokemon_list' %}" class="btn btn-primary">Back to Pokedex</a>
     {% elif pokemon_data %}
-        <div class="row mb-4">
-            <div class="col-md-4 text-center">
-                {% if pokemon_data.sprite_front %}
-                    <img src="{{ pokemon_data.sprite_front }}" alt="Sprite of {{ pokemon_data.name }}" class="img-fluid pokemon-sprite mb-3">
-                {% else %}
-                    <div class="border p-3 mb-3 text-muted">No sprite available</div>
-                {% endif %}
-                <h1 class="mb-0">{{ pokemon_data.name }}</h1>
-                <p class="text-muted">#{{ pokemon_data.id }}</p>
-            </div>
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        Details
-                    </div>
+        <div class="card">
+            <div class="row no-gutters">
+                <div class="col-md-4">
+                    {% if pokemon_data.sprite_front %}
+                        <img src="{{ pokemon_data.sprite_front }}" class="card-img-top p-3" alt="{{ pokemon_name }}" style="max-width: 100%; height: auto; image-rendering: pixelated;">
+                    {% else %}
+                        <img src="{% static 'pokedex_app/images/pokemon_placeholder.png' %}" class="card-img-top p-3" alt="Placeholder" style="max-width: 96px; height: auto;">
+                    {% endif %}
+                </div>
+                <div class="col-md-8">
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p><strong>Height:</strong> {{ pokemon_data.height }} dm</p>
-                                <p><strong>Weight:</strong> {{ pokemon_data.weight }} hg</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>Types:</strong>
-                                    {% for type in pokemon_data.types %}
-                                        <span class="badge badge-info mr-1">{{ type|capfirst }}</span>
-                                    {% empty %}
-                                        N/A
-                                    {% endfor %}
-                                </p>
-                                <p><strong>Abilities:</strong>
-                                    {% for ability in pokemon_data.abilities %}
-                                        <span class="badge badge-secondary mr-1">{{ ability|capfirst }}</span>
-                                    {% empty %}
-                                        N/A
-                                    {% endfor %}
-                                </p>
+                        <h1 class="card-title display-4">{{ pokemon_data.name }} <small class="text-muted">#{{ pokemon_data.id }}</small></h1>
+                        <hr>
+                        <h5 class="card-subtitle mb-2">Details</h5>
+                        <p class="card-text">
+                            <strong>Height:</strong> {{ pokemon_data.height }} dm <br>
+                            <strong>Weight:</strong> {{ pokemon_data.weight }} hg
+                        </p>
+                        <h5 class="card-subtitle mt-3 mb-2">Types</h5>
+                        <p class="card-text">
+                            {% for type in pokemon_data.types %}
+                                <span class="badge badge-primary type-{{ type|lower }}">{{ type }}</span>
+                            {% endfor %}
+                        </p>
+                        <h5 class="card-subtitle mt-3 mb-2">Abilities</h5>
+                        <p class="card-text">
+                            {% for ability in pokemon_data.abilities %}
+                                {{ ability }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h4 class="mb-0">Base Stats</h4>
+            </div>
+            <div class="card-body">
+                {% if pokemon_data.stats %}
+                    {% for stat_name, stat_value in pokemon_data.stats.items %}
+                        <div class="stat-row mb-2">
+                            <strong>{{ stat_name|capfirst }}:</strong> {{ stat_value }}
+                            <div class="progress">
+                                <div class="progress-bar bg-info" role="progressbar" aria-valuenow="{{ stat_value }}" aria-valuemin="0" aria-valuemax="100">{{ stat_value }}</div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No stats listed.</p>
+                {% endif %}
             </div>
         </div>
 
-        <h2>Base Stats</h2>
-        {% for stat_name, stat_value in pokemon_data.stats.items %}
-            <div class="mb-2">
-                <strong>{{ stat_name|capfirst }}:</strong> {{ stat_value }}
-                <div class="stat-bar-container">
-                    <div class="stat-bar" style="width: {{ stat_value }}%; max-width: 100%;" role="progressbar" aria-valuenow="{{ stat_value }}" aria-valuemin="0" aria-valuemax="255">{{ stat_value }}</div>
+        {% comment %} Evolution Chain Section Start {% endcomment %}
+        {% if evolution_chain %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h4 class="mb-0">Evolution Chain</h4>
+            </div>
+            <div class="card-body">
+                <div class="evolution-chain-container d-flex flex-wrap align-items-center">
+                     {% include "pokedex_app/partials/_evolution_chain_display.html" with evolution_node=evolution_chain %}
                 </div>
             </div>
-        {% empty %}
-            <p>No stats listed.</p>
-        {% endfor %}
+        </div>
+        {% else %}
+            {% if pokemon_data %} {# Only show no evolution if we have pokemon data, not if the pokemon itself wasn't found #}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Evolution Chain</h4>
+                </div>
+                <div class="card-body">
+                    <p>No evolution data available for this Pokémon or it does not evolve.</p>
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
+        {% comment %} Evolution Chain Section End {% endcomment %}
+
+        <div class="mt-4 mb-4">
+            <a href="{% url 'pokemon_list' %}" class="btn btn-secondary">&laquo; Back to Pokedex</a>
+        </div>
 
     {% else %}
-        <div class="alert alert-warning" role="alert">
-            <h4 class="alert-heading">Pokemon Not Found</h4>
-            <p>The Pokemon "{{ pokemon_name }}" could not be found or data is unavailable.</p>
-        </div>
+        <div class="alert alert-warning">Pokemon data not available.</div>
+        <a href="{% url 'pokemon_list' %}" class="btn btn-primary">Back to Pokedex</a>
     {% endif %}
+</div>
 {% endblock %} 
